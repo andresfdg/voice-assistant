@@ -8,8 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.core.db import close_db, init_db
-from app.router.user import router as user_router
-from app.router.event import router as event_router
+from app.modules.event.router import router as event_router
+from app.modules.user.router import router as user_router
 
 # -----------------------
 # LIFESPAN EVENT:

@@ -2,8 +2,8 @@ from typing import List
 
 from fastapi import APIRouter
 
-from app.schemas.user import User, UserCreate
-from app.services.user import UserService
+from app.modules.user.schemas import User, UserCreate
+from app.modules.user.services import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
