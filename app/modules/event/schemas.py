@@ -7,9 +7,9 @@ from pydantic import BaseModel
 class EventBase(BaseModel):
     title: str
     description: Optional[str] = None
-    start_time: datetime
-    end_time: datetime
-    location: Optional[str] = None
+    # start_time: datetime
+    # end_time: datetime
+    # location: Optional[str] = None
 
 
 class EventCreate(EventBase):
@@ -37,8 +37,8 @@ class FormattedEvent(BaseModel):
     user_id: int
     title: str
     description: Optional[str] = None
-    start_time: str
-    end_time: str
-    location: Optional[str] = None
-    created_at: str
-    updated_at: str
+    # start_time: str
+    # end_time: str
+    # location: Optional[str] = None
+    # created_at: str
+    # updated_at: str

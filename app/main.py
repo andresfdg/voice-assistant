@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.db import close_db, init_db
 from app.modules.event.router import router as event_router
+from app.modules.orchestration.router import router as orchestration_router
 from app.modules.user.router import router as user_router
 
 # -----------------------
@@ -30,16 +31,15 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(user_router, prefix="/api")
 app.include_router(event_router, prefix="/api")
+app.include_router(orchestration_router, prefix="/api")
 
 
-# Configuración básica de logging
 logging.basicConfig(
-    level=logging.ERROR,  # Cambia a DEBUG/INFO para ver más detalles
+    level=logging.ERROR,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 
-# # Handler genérico para cualquier otra excepción -> Devuelve 500
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     logging.error(f"Unhandled error at {request.url}: {exc}\n{traceback.format_exc()}")

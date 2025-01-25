@@ -10,14 +10,13 @@ router = APIRouter(prefix="/events", tags=["Events"])
 
 
 @router.get("/", response_model=List[FormattedEvent])
-async def get_users():
+async def get_events():
     events = await EventService.get_all_events()
     return events
 
 
 @router.post("/", response_model=Event)
 async def create_event(event_data: EventCreate):
-    """Crea un nuevo evento."""
     event = await EventService.create_event(
         user_id=event_data.user_id,
         title=event_data.title,
