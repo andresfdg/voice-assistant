@@ -1,106 +1,125 @@
 import json
+import re
+from typing import Dict
 
 import ollama
 
 
-async def process_text_with_llm(text: str) -> dict:
+async def process_text_with_llm(text: str) -> Dict:
     """
-    Processes user input with an LLM model and returns the intent in JSON format.
+    Procesa el input del usuario con un modelo LLM y retorna el intento en formato JSON.
 
     Args:
-        text (str): User input.
+        text (str): Input del usuario.
 
     Returns:
-        dict: JSON response containing the intent and user input.
+        dict: Respuesta JSON conteniendo el intento y el texto del usuario.
     """
-    model = "llama3.2"
+    model = "deepseek-r1:8b"
     prompt = f"""
-    You are an assistant that maps user input to server actions.
+    Eres un asistente que mapea inputs de usuarios a acciones de servidor.
 
-    User input: "{text}"
+    Input del usuario: "{text}"
 
-    Respond with JSON format:
+    Responde en formato JSON:
     {{
-        "intent": "get_events" or "create_event",
+        "intent": "get_events" o "create_event",
         "user_text": "{text}"
     }}
     """
 
     try:
-        # Generate response from the LLM model
+        # Generar respuesta del modelo
         raw_response = ollama.generate(model=model, prompt=prompt)
-
-        # Extract the "response" key content
         response_content = raw_response.response
 
-        # Convert the response content to a JSON dictionary
-        return json.loads(response_content)
+        # Extraer el JSON usando expresiones regulares
+        json_match = re.search(r"```json\n(.*?)\n```", response_content, re.DOTALL)
+
+        if not json_match:
+            raise ValueError("No se encontró JSON en la respuesta del modelo")
+
+        # Limpiar y parsear el JSON
+        json_str = json_match.group(1).strip()
+        return json.loads(json_str)
+
     except AttributeError:
-        raise ValueError("The response does not contain a 'response' key.")
-    except json.JSONDecodeError:
-        raise ValueError(f"Invalid JSON format in the response: {response_content}")
+        raise ValueError("La respuesta no contiene la clave 'response'")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"JSON inválido en la respuesta: {e}\nContenido: {json_str}")
     except Exception as e:
-        raise ValueError(f"Error processing text with LLM: {e}")
+        raise ValueError(f"Error procesando texto con LLM: {e}")
 
 
 async def generate_human_response(intent: str, data: dict) -> str:
     """
-    Generates a human-readable response based on the user's intent and data.
+    Genera una respuesta legible basada en el intento del usuario y los datos.
 
     Args:
-        intent (str): The intent, either "get_events" or "create_event".
-        data (dict): Additional data required to generate the response.
+        intent (str): Intento ("get_events" o "create_event").
+        data (dict): Datos necesarios para generar la respuesta.
 
     Returns:
-        str: A friendly, human-like response.
+        str: Respuesta amigable en lenguaje natural.
     """
-    model = "llama3.2"
+    model = "deepseek-r1:8b"
     user_text = data.get("user_text", "")
     prompt = ""
 
     if intent == "get_events":
         events = data.get("events", [])
         prompt = f"""
-        You are an assistant that helps users find events based on their request.
+        Eres un asistente que ayuda a encontrar eventos basados en solicitudes.
 
-        User request: "{user_text}"
+        Solicitud: "{user_text}"
 
-        List of all events retrieved from the database:
+        Eventos disponibles:
         {events}
 
-        Instructions:
-        - First, analyze the user's request. If the user requested "all events," provide the complete list without filtering.
-        - If the user requested specific events (e.g., "the first two events" or "events related to X"), filter the list accordingly.
-        - short reponse 
+        Instrucciones:
+        - Analiza la solicitud. Si pide "todos los eventos", lista completos.
+        - Si pide eventos específicos (ej: "primeros 3" o "relacionados con X"), filtra.
+        - Respuestas cortas y naturales.
 
-        Example response formats:
-        - If matching 2 events: "Here are the 2 events you requested:\n1) EventNameOne\n2) EventNameTwo."
-        - If all events are requested: "Here is the full list of events:\n1) EventNameOne\n2) EventNameTwo\n3) EventNameThree."
-        - If no specific matches: "I couldn't find events matching your request
+        Ejemplos de formato:
+        - 2 eventos: "Aquí tienes los 2 eventos:\n1) Evento1\n2) Evento2"
+        - Todos: "Lista completa:\n1) Evento1\n2) Evento2..."
+        - Sin coincidencias: "No encontré eventos con esos criterios"
         """
     elif intent == "create_event":
         event = data.get("event", {})
         prompt = f"""
-        You are an assistant that confirms the creation of events in a user-friendly tone.
+        Eres un asistente que confirma creación de eventos con tono amigable.
 
-        User request: "{user_text}"
+        Solicitud: "{user_text}"
 
-        Event details provided:
+        Detalles del evento:
         {event}
 
-        Instructions:
-        - Confirm the creation of the event with key details like name, date, and location.
-        - Ensure the response is clear, positive, and enthusiastic.
+        Instrucciones:
+        - Confirma creación con detalles clave: nombre, fecha, ubicación.
+        - Usa un tono positivo y entusiasta.
 
-        Example response:
-        - "Your event '{event.get('name')}' has been successfully created for {event.get('date')} at {event.get('location')}. Thank you!"
+        Ejemplo:
+        - "¡Evento '{event.get('name')}' creado para {event.get('date')} en {event.get('location')}!"
         """
     else:
-        return "I'm sorry, I couldn't generate a response for this intent."
+        return "No pude generar una respuesta para este tipo de solicitud."
 
     try:
-        # Generate response using the model with lower temperature for accuracy
+        # Generar respuesta y limpiar formato
         response = ollama.generate(model=model, prompt=prompt)
-        return response.get("response", "").strip()
+        response_content = response.response
+
+        # Eliminar secciones <think> y marcadores markdown
+        cleaned_response = re.sub(
+            r"<think>.*?</think>", "", response_content, flags=re.DOTALL
+        )
+        cleaned_response = re.sub(r"```\w*\n?", "", cleaned_response).strip()
+
+        return cleaned_response
+
+    except AttributeError:
+        return "Error: Formato de respuesta inesperado (falta 'response')"
     except Exception as e:
-        return f"An error occurred while generating the response: {e}"
+        return f"Error generando respuesta: {str(e)}"
