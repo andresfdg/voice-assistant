@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 import whisper
 
 # Cargar modelo de Whisper
-whisper_model = whisper.load_model("tiny")
+whisper_model = whisper.load_model("turbo")
 
 
 async def transcribe_audio(file) -> str:
