@@ -6,7 +6,7 @@ router = APIRouter(prefix="/orchestration", tags=["Orchestration"])
 
 
 @router.post("/process-audio/")
-async def process_audio(file: UploadFile):
+async def process_audio():
 
-    response = await orchestrate_audio_processing(file)
+    response = await orchestrate_audio_processing()
     return response

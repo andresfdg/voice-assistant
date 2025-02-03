@@ -6,7 +6,7 @@ import ollama
 
 
 async def process_text_with_llm(text: str) -> Dict:
-    model = "deepseek-r1:14b"
+    model = "llama3.2"
 
     sanitized_text = json.dumps(text)
 
@@ -15,39 +15,25 @@ async def process_text_with_llm(text: str) -> Dict:
 
     User input: {sanitized_text}
 
-    Identify the user's intent and respond in strict JSON format:
+    Identify the user's intent and respond in strict and only this json format:
     {{
         "intent": "get_events"  // if the user is requesting event information
         "intent": "create_event" // if the user wants to create an event
-        "user_text": {sanitized_text}
     }}
 
     If the intent is unclear, respond with:
     {{
         "intent": "unknown",
-        "user_text": {sanitized_text}
     }}
     """
 
     try:
 
         raw_response = ollama.generate(model=model, prompt=prompt)
-        response_content = raw_response.response
 
-        json_match = re.search(r"```json\n(.*?)\n```", response_content, re.DOTALL)
-
-        if not json_match:
-            raise ValueError("No se encontró JSON en la respuesta del modelo")
-
-        json_str = json_match.group(1).strip()
-        return json.loads(json_str)
-
+        return json.loads(raw_response.response)
     except AttributeError:
         raise ValueError("La respuesta no contiene la clave 'response'")
-    except json.JSONDecodeError as e:
-        raise ValueError(f"JSON inválido en la respuesta: {e}\nContenido: {json_str}")
-    except Exception as e:
-        raise ValueError(f"Error procesando texto con LLM: {e}")
 
 
 async def generate_human_response(intent: str, data: Dict[str, Any]) -> str:
@@ -96,3 +82,34 @@ async def generate_human_response(intent: str, data: Dict[str, Any]) -> str:
 
     except Exception:
         return "Error generating response."
+
+
+async def process_text_with_llm_for_get(text: str) -> Dict:
+    model = "llama3.2"
+
+    sanitized_text = json.dumps(text)
+
+    prompt = f"""
+    You are an assistant that maps user inputs to server actions.
+
+    User input: {sanitized_text}
+
+    Identify the user's intent and respond in strict and only this json format:
+    {{
+        "intent": "get_events"  // if the user is requesting some events information
+        "intent": "get_one_event" // if the user request just one and only one event
+    }}
+
+    If the intent is unclear, respond with:
+    {{
+        "intent": "unknown",
+    }}
+    """
+
+    try:
+
+        raw_response = ollama.generate(model=model, prompt=prompt)
+
+        return json.loads(raw_response.response)
+    except AttributeError:
+        raise ValueError("La respuesta no contiene la clave 'response'")
